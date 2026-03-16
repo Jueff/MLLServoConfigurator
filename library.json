@@ -1,0 +1,44 @@
+{
+  "name": "MLLServoConfigurator",
+  "version": "0.1.0",
+  "description": "The library bundles servo related classes for MobaLedLib",
+  "keywords": [
+    "servo",
+    "pwm",
+    "rp2040",
+    "configuration",
+    "led",
+    "flash",
+    "state machine"
+  ],
+  "authors": [
+    {
+      "name": "Jueff",
+      "email": "MobaLedLib@gmx.at",
+      "maintainer": true
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Jueff/MLLServoConfigurator"
+  },
+  "homepage": "https://github.com/Jueff/MLLServoConfigurator#readme",
+  "license": "LGPL-2.1-or-later",
+  "frameworks": [
+    "arduino"
+  ],
+  "platforms": [
+    "rp2040"
+  ],
+  "dependencies": [
+    {
+      "name": "RP2040_PWM",
+      "version": "*"
+    },
+    {
+      "name": "PicoFlashStorage",
+      "version": "*"
+    }
+  ],
+  "exclude": [ "compile.cmd", ".git", ".vs", "src\\.vs" ]
+}
