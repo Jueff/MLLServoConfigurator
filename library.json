@@ -16,12 +16,9 @@
   },
   "homepage": "https://github.com/Jueff/MLLServoConfigurator#readme",
   "license": "LGPL-2.1-or-later",
-  "frameworks": [
-    "arduino"
-  ],
-  "platforms": [
-    "rp2040"
-  ],
+  "frameworks": "*",
+  "platforms": ["raspberrypi"],
+
   "dependencies": [
     {
       "name": "RP2040_PWM",
@@ -32,5 +29,6 @@
       "version": "*"
     }
   ],
+  "headers": ["ServoConfigurator.h","ServoController.h","StatefulServoController.h"],
   "exclude": [ "compile.cmd", ".git", ".vs", "src\\.vs" ]
 }
