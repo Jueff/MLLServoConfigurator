@@ -1,6 +1,6 @@
 {
   "name": "MLLServoConfigurator",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "The library bundles servo related classes for MobaLedLib",
   "keywords": "servo,pwm,rp2040,led,state machine",
   "authors": [
