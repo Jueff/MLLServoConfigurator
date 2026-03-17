@@ -30,6 +30,7 @@
 */
 
 #include "ServoConfigurator.h"
+#include "MLLServoConfigurator.h"
 
 #include "StatefulServoController.h"
 
@@ -88,13 +89,13 @@ ServoConfigurator::ServoConfigurator(FlashStorage* pFlashStorage, uint8_t storag
     // read the min and max position for the servo from flash storage, if not valid use default values
     if (pFlashStorage->getBlock(fbs, FLASHBLOCK_TYPE_MINMAX, storageOffset + i))
     {
-      Serial.printf("%d-%d: limit storage for servo is valid\n", storageOffset, i);
+      MLLSC_LOG(1, "%d-%d: limit storage for servo is valid\n", storageOffset, i);
       lowerLimit = fbs.getWord(0);
       upperLimit = fbs.getWord(2);
     }
     else
     {
-      Serial.printf("%d-%d: using default limit values\n", storageOffset, i);
+      MLLSC_LOG(1, "%d-%d: using default limit values\n", storageOffset, i);
       lowerLimit = DEF_MIN_SERVO;
       upperLimit = DEF_MAX_SERVO;
       // todo error handling
@@ -104,11 +105,11 @@ ServoConfigurator::ServoConfigurator(FlashStorage* pFlashStorage, uint8_t storag
     if (pFlashStorage->getBlock(fbs, FLASHBLOCK_TYPE_SPEED, storageOffset + i))
     {
       speed = fbs.getWord(0);
-      Serial.printf("%d-%d: speed storage is valid\n", storageOffset, i);
+      MLLSC_LOG(1, "%d-%d: speed storage is valid\n", storageOffset, i);
     }
     else
     {
-      Serial.printf("%d-%d: using default speed values\n", storageOffset, i);
+      MLLSC_LOG(1, "%d-%d: using default speed values\n", storageOffset, i);
       speed = (CNG_POS_SLOW + CNG_POS_FAST) / 2;
       // todo error handling
     }
@@ -118,11 +119,11 @@ ServoConfigurator::ServoConfigurator(FlashStorage* pFlashStorage, uint8_t storag
     {
       pFlashStorage->dumpMemory(fbs.getAddress(), 8); 
       position = fbs.getWord(0);
-      Serial.printf("%d-%d: position storage for is valid\n", storageOffset, i, position);
+      MLLSC_LOG(1, "%d-%d: position storage for is valid\n", storageOffset, i, position);
     }
     else
     {
-      Serial.printf("%d-%d: using default position values\n", storageOffset, i);
+      MLLSC_LOG(1, "%d-%d: using default position values\n", storageOffset, i);
       position = (lowerLimit + upperLimit) / 2;
       // todo error handling
     }
@@ -132,7 +133,7 @@ ServoConfigurator::ServoConfigurator(FlashStorage* pFlashStorage, uint8_t storag
     pServo[i]->setSpeed(speed);
     pServo[i]->setCurrent(position);  // todo check how to correclty init without setting the PWM
     //pServo[i]->setTarget(position, false);
-    Serial.printf("%d-%d: position %d lowerLimit %d upperLimit %d speed %d\n", storageOffset, i,
+    MLLSC_LOG(1, "%d-%d: position %d lowerLimit %d upperLimit %d speed %d\n", storageOffset, i,
       pServo[i]->getTarget(), pServo[i]->getLowerLimit(), pServo[i]->getUpperLimit(), pServo[i]->getSpeed());
   }
 }
@@ -161,7 +162,7 @@ void ServoConfigurator::changeModeServo(uint8_t servoNumber, eAction action)
       if (newSel < numberOfServos)
       {
         selectedServo = newSel;
-        Serial.printf("%d-%d servo selected\r\n", storageOffset, selectedServo);
+        MLLSC_LOG(1, "%d-%d servo selected\r\n", storageOffset, selectedServo);
       }
       break;
     }
@@ -173,7 +174,7 @@ void ServoConfigurator::changeModeServo(uint8_t servoNumber, eAction action)
         currentMinVal = pServo[selectedServo]->getMaximum();  // reset the values
         currentMaxVal = pServo[selectedServo]->getMinimum();  // reset the values
         pServo[selectedServo]->buttonChanged = 0;
-        //Serial.println("%d-%d: eState::MinMax", storageOffset, i);
+        //MLLSC_LOG(1, "%d-%d: eState::MinMax", storageOffset, i);
         break;
       }
 
@@ -186,7 +187,7 @@ void ServoConfigurator::changeModeServo(uint8_t servoNumber, eAction action)
           currentMaxVal = pServo[selectedServo]->getTarget();
           saveMinMax(selectedServo);
           pServo[selectedServo]->setTarget(pServo[selectedServo]->getCurrent(), true);
-          Serial.printf("%d-%d: lowerLimit %d upperlimit %d\n", storageOffset, pServo[selectedServo]->getLowerLimit(), pServo[selectedServo]->getUpperLimit());
+          MLLSC_LOG(1, "%d-%d: lowerLimit %d upperlimit %d\n", storageOffset, pServo[selectedServo]->getLowerLimit(), pServo[selectedServo]->getUpperLimit());
           state = eState::Speed;
         }
       }
@@ -194,11 +195,11 @@ void ServoConfigurator::changeModeServo(uint8_t servoNumber, eAction action)
     }
 
     case eAction::SetByButton:  // (LED PWM 250)
-      Serial.printf("%d-%d: eAction::SetByButton state %d\n", storageOffset, state);
+      MLLSC_LOG(1, "%d-%d: eAction::SetByButton state %d\n", storageOffset, state);
       if (state == eState::MinMax && isServoSelected())
       {
         state = eState::MinMaxButtons;
-        Serial.printf("%d-%d: new state is MinMaxButtons\n", storageOffset, state);
+        MLLSC_LOG(1, "%d-%d: new state is MinMaxButtons\n", storageOffset, state);
         currentMinVal = pServo[selectedServo]->getLowerLimit();
         currentMaxVal = pServo[selectedServo]->getUpperLimit();
         buttonMode = eButtonMode::ReadMin;
@@ -210,7 +211,7 @@ void ServoConfigurator::changeModeServo(uint8_t servoNumber, eAction action)
       }
       else if (state == eState::Init)
       {
-        Serial.printf("%d-%d: TerServo\n", storageOffset, selectedServo);         // Debug: State eState::TerServo (LED PWM 250)
+        MLLSC_LOG(1, "%d-%d: TerServo\n", storageOffset, selectedServo);         // Debug: State eState::TerServo (LED PWM 250)
         state = eState::TerServo;
         selectedServo = servoNumber;   // Prevent that other channels disable the mode again because then the mode is toggled permanently
       }
@@ -231,7 +232,7 @@ void ServoConfigurator::changeModeServo(uint8_t servoNumber, eAction action)
       if (state != eState::Init)
       {
         state = eState::Init;
-        Serial.printf("%d-%d: change to eState::Init\n", storageOffset, state);
+        MLLSC_LOG(1, "%d-%d: change to eState::Init\n", storageOffset, state);
         selectedServo = NO_SERVO_SEL;
       }
       break;
@@ -244,11 +245,11 @@ void ServoConfigurator::processModeServo(uint8_t servoNumber, uint8_t ledValue)
   if (state == eState::Init || selectedServo == servoNumber)
   {
     eAction action = ledValueToAction(ledValue); // 0=0, 1-222=-1, 223-227=1, 228-232=2, 233-237=3, 238-242=4, 243-247=5, 248-252=6, 253-255=7
-    //if (((int8_t)action)>1) Serial.printf("%d-%d: ProcModeServer: state %d LED_pwm %d Action %d\r\n", storageOffset, servoNumber, state, ledValue, action);
+    //if (((int8_t)action)>1) MLLSC_LOG(1, "%d-%d: ProcModeServer: state %d LED_pwm %d Action %d\r\n", storageOffset, servoNumber, state, ledValue, action);
 
     if (action != eAction::Invalid && action != lastAction)
     {
-      if (isServoSelected()) Serial.printf("%d-%d: Action %d\n", storageOffset, servoNumber, action); // Debug
+      if (isServoSelected()) MLLSC_LOG(1, "%d-%d: Action %d\n", storageOffset, servoNumber, action); // Debug
       lastAction = action;
       changeModeServo(servoNumber, action);
     }
@@ -274,7 +275,7 @@ void ServoConfigurator::processModeServo(uint8_t servoNumber, uint8_t ledValue)
 void ServoConfigurator::controlServo(uint8_t ledValue, uint8_t servoNumber, bool limitRange)
 //----------------------------------------------------------------------
 {
-  //if (servoNumber==0) Serial.printf("%d-%d: Control_Servo value %d\n", storageOffset, servoNumber, ledValue);
+  //if (servoNumber==0) MLLSC_LOG(1, "%d-%d: Control_Servo value %d\n", storageOffset, servoNumber, ledValue);
   if (ledValue == 0)
   {
     pServo[servoNumber]->disable();
@@ -296,7 +297,7 @@ void ServoConfigurator::controlServo(uint8_t ledValue, uint8_t servoNumber, bool
       
       if (val != pServo[servoNumber]->getTarget())
       {
-        Serial.printf("%d-%d: controlServo value %d mapped to %d\n", storageOffset, servoNumber, ledValue, val);
+        MLLSC_LOG(1, "%d-%d: controlServo value %d mapped to %d\n", storageOffset, servoNumber, ledValue, val);
         pServo[servoNumber]->setTarget(val, limitRange);                     // 1 - 220
       }
     }
@@ -353,7 +354,7 @@ void ServoConfigurator::readMinMaxButton(uint8_t ledValue)
 
   if (pServo[selectedServo]->getTarget() != current)
   {
-    Serial.printf("%d-%d: value before %d, now %d\n", storageOffset, selectedServo, pServo[selectedServo]->getTarget(), current);
+    MLLSC_LOG(1, "%d-%d: value before %d, now %d\n", storageOffset, selectedServo, pServo[selectedServo]->getTarget(), current);
     pServo[selectedServo]->setTarget(current, false, true);  // todo move the servo with full speed
   }
 
@@ -368,7 +369,7 @@ void ServoConfigurator::readMinMaxButton(uint8_t ledValue)
 
   if (button == 2) // 205
   { // Button 1 pressed
-      Serial.printf("%d-%d: button pressed, buttonMode = %d\n", storageOffset, selectedServo, buttonMode);
+    MLLSC_LOG(1, "%d-%d: button pressed, buttonMode = %d\n", storageOffset, selectedServo, buttonMode);
       switch (buttonMode)
       {
       case eButtonMode::ReadMin:
@@ -394,7 +395,7 @@ void ServoConfigurator::readMinMaxButton(uint8_t ledValue)
     {
         currentMaxVal = current;
         saveMinMax(selectedServo);
-        Serial.printf("%d-%d: limit setting ends\n", storageOffset, selectedServo); // Debug
+        MLLSC_LOG(1, "%d-%d: limit setting ends\n", storageOffset, selectedServo); // Debug
     }
   }
 }
@@ -438,7 +439,7 @@ void ServoConfigurator::readSpeed(uint8_t ledValue)
       if (pCurrent->getTarget()== pCurrent->getUpperLimit()) pCurrent->setTarget(pCurrent->getLowerLimit(), true);
       else
       {
-        //cdSerial.printf("Wipe offset %d pin %d Ch %d to %d\n", storageOffset, pCurrent->getPin(), selectedServo, pCurrent->getUpperLimit());
+        //MLLSC_LOG(1, "Wipe offset %d pin %d Ch %d to %d\n", storageOffset, pCurrent->getPin(), selectedServo, pCurrent->getUpperLimit());
         pCurrent->setTarget(pCurrent->getUpperLimit(), true);
       }
       if (pCurrent->getSpeed() == 0) lastWipeTime = t; // At maximal speed the LastWipeT is not set below
@@ -454,12 +455,12 @@ void ServoConfigurator::readSpeed(uint8_t ledValue)
     {
       int speed = pCurrent->getSpeed();
       auto eButton = processUpDownButtons(ledValue, speed, MIN_MOVE_BUTT, MAX_MOVE_BUTT, CNG_SPD_SLOW, CNG_SPD_FAST);
-      //Serial.printf("speed change button %d speed %d led %d\r\n", eButton, speed, ledValue);
+      //MLLSC_LOG(1, "speed change button %d speed %d led %d\r\n", eButton, speed, ledValue);
       if (eButton::None != eButton)
       {
         lastChangeTime = t;
         pCurrent->setSpeed(speed);
-        Serial.printf("%d-%d: new speed %d\n", storageOffset, selectedServo, speed); // Debug
+        MLLSC_LOG(1, "%d-%d: new speed %d\n", storageOffset, selectedServo, speed); // Debug
       }
     }
   }
@@ -522,7 +523,7 @@ void ServoConfigurator::processTerServo(uint8_t ledValue)
 // 165   R       R       R
 {
 
-  Serial.println(F("TerServo")); // Debug
+  MLLSC_LOG(1, "TerServo"); // Debug
 
   /*
   if (LED_pwm < 33 || LED_pwm > 167) LED_pwm = 35; // All Servos are unchanged
@@ -601,7 +602,7 @@ float ServoConfigurator::getPercentage() const
     // return the percent of speed between min and max
     float speedPercent = ((current - MIN_MOVE) * 100);
     speedPercent = speedPercent / (MAX_MOVE - MIN_MOVE);
-    //Serial.printf("%d-%d: getPercentage: current %d min %d max %d speedPercent %f\n", storageOffset, selectedServo, current, MIN_MOVE, MAX_MOVE, speedPercent);
+    //MLLSC_LOG(1, "%d-%d: getPercentage: current %d min %d max %d speedPercent %f\n", storageOffset, selectedServo, current, MIN_MOVE, MAX_MOVE, speedPercent);
     return speedPercent / 100;
   }
 
@@ -609,7 +610,7 @@ float ServoConfigurator::getPercentage() const
   // return the percent of current between min and max
   float posPercent = ((current - pServo[selectedServo]->getMinimum()) * 100);
   posPercent  = posPercent / (pServo[selectedServo]->getMaximum() - pServo[selectedServo]->getMinimum());
-  //Serial.printf("%d-%d: getPosition: current %d min %d max %d posPercent %f\n", storageOffset, selectedServo, current, pServo[selectedServo]->getMinimum(), pServo[selectedServo]->getMaximum(), posPercent);
+  //MLLSC_LOG(1, "%d-%d: getPosition: current %d min %d max %d posPercent %f\n", storageOffset, selectedServo, current, pServo[selectedServo]->getMinimum(), pServo[selectedServo]->getMaximum(), posPercent);
   return posPercent / 100;
 }
 
@@ -624,12 +625,12 @@ void ServoConfigurator::savePosition(uint8_t servoNumber)
   fwb.setWord(val, 0);
   if (!pFlashStorage->write(&fwb))
   {
-    Serial.printf("%d-%d: error saving position %d\n", storageOffset, servoNumber, val);
+    MLLSC_LOG(1, "%d-%d: error saving position %d\n", storageOffset, servoNumber, val);
     // todo error handling
   }
   else
   {
-    Serial.printf("%d-%d: position %d saved\n", storageOffset, servoNumber, val);
+    MLLSC_LOG(1, "%d-%d: position %d saved\n", storageOffset, servoNumber, val);
   }
 }
 
@@ -645,13 +646,13 @@ void ServoConfigurator::saveMinMax(uint8_t servoNumber)
   fwb.setWord(currentMaxVal, 2);
   if (!pFlashStorage->write(&fwb))
   {
-    Serial.printf("%d-%d: error saving limits min=%d max=%d\n",
+    MLLSC_LOG(1, "%d-%d: error saving limits min=%d max=%d\n",
       storageOffset, servoNumber, pServo[servoNumber]->getLowerLimit(), pServo[servoNumber]->getUpperLimit());
     // todo error handling
   }
   else
   {
-    Serial.printf("%d-%d: limits min=%d max=%d saved\n",
+    MLLSC_LOG(1, "%d-%d: limits min=%d max=%d saved\n",
       storageOffset, servoNumber, pServo[servoNumber]->getLowerLimit(), pServo[servoNumber]->getUpperLimit());
   }
 }
@@ -667,11 +668,11 @@ void ServoConfigurator::saveSpeed(uint8_t servoNumber)
   fwb.setWord(val, 0);
   if (!pFlashStorage->write(&fwb))
   {
-    Serial.printf("%d-%d: error saving speed %d\n", storageOffset, servoNumber, val);
+    MLLSC_LOG(1, "%d-%d: error saving speed %d\n", storageOffset, servoNumber, val);
     // todo error handling
   }
   else
   {
-    Serial.printf("%d-%d: speed %d saved\n", storageOffset, servoNumber, val);
+    MLLSC_LOG(1, "%d-%d: speed %d saved\n", storageOffset, servoNumber, val);
   }
 }

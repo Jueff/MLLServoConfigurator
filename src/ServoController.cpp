@@ -9,6 +9,7 @@
  * Servo positions are updated periodically using a timer callback.
  */
 
+#include "MLLServoConfigurator.h"
 #include "ServoController.h"
 
 ServoController* ServoController::first = NULL;
@@ -61,7 +62,7 @@ bool ServoController::setTarget(uint16_t value, bool checkLimits, bool immediate
   }
   if (disabled)         // re-enable PWM
   {
-    Serial.printf("P%d : enable servo\n", pin);
+    MLLSC_LOG(1, "P%d : enable servo\n", pin);
     disabled = false;
   }
 
@@ -93,11 +94,11 @@ bool ServoController::setTarget(uint16_t value, bool checkLimits, bool immediate
   {
     current = target;
     pwm->setPWM_Int(pin, 50, current);
-    Serial.printf("P%d : immediate move to %d\n", pin, target);
+    MLLSC_LOG(1, "P%d : immediate move to %d\n", pin, target);
   }
   else
   {
-    Serial.printf("P%d : new target value %d\n", pin, target);
+    MLLSC_LOG(1, "P%d : new target value %d\n", pin, target);
   }
   return true;
 }
@@ -125,14 +126,14 @@ void ServoController::setDutyCycle()
     current += diff;
   }
   pwm->setPWM_Int(pin, 50, current);
-  //Serial.printf("P%d : duty cycle target %d current %d\n", pin, target, current);
+  //MLLSC_LOG(1, "P%d : duty cycle target %d current %d\n", pin, target, current);
 }
 
 void ServoController::disable()
 {
   if (!disabled)
   {
-    Serial.printf("P%d : disable servo\n", pin);
+    MLLSC_LOG(1, "P%d : disable servo\n", pin);
     pwm->setPWM_Int(pin, 50, INT_MAX);
     disabled = true;
   }

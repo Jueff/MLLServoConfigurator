@@ -1,5 +1,6 @@
 #pragma once
 
+#include "MLLServoConfigurator.h"
 #include "ServoController.h"
 #include "PicoFlashStorage.h"
 
