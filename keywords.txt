@@ -1,36 +1,76 @@
-##########################################
-# Syntax Coloring Map For SoftwareSerialTX
-##########################################
-#FUNCTIONS COLOR     #D35400 - ORANGE  KEYWORD1
-#FUNCTIONS COLOR     #D35400 - ORANGE  KEYWORD2
-#STRUCTURE COLORS    #728E00 - GREEN   KEYWORD3
-#VARIABLES COLOR     #00979C - BLUE    LITERAL1
-#
-# One TAB between name and description
-# ME Search:  ^([^\#^ ]+)( +)
-#    Replace: \0\t
+# ServoController class and methods
+ServoController	KEYWORD1
+disable	KEYWORD2
+getCurrent	KEYWORD2
+getLowerLimit	KEYWORD2
+getMaximum	KEYWORD2
+getMinimum	KEYWORD2
+getPin	KEYWORD2
+getSpeed	KEYWORD2
+getTarget	KEYWORD2
+getUpperLimit	KEYWORD2
+isInverted	KEYWORD2
+isMoving	KEYWORD2
+isReady	KEYWORD2
+onTimer	KEYWORD2
+repeating_timer_callback	KEYWORD2
+setCurrent	KEYWORD2
+setLowerLimit	KEYWORD2
+setSpeed	KEYWORD2
+setTarget	KEYWORD2
+setUpperLimit	KEYWORD2
 
-#######################################
-# Datatypes (KEYWORD3)
-#######################################
-SoftwareSerialTX	KEYWORD3
+# ServoConfigurator class and methods
+ServoConfigurator	KEYWORD1
+changeModeServo	KEYWORD2
+controlServo	KEYWORD2
+getPercentage	KEYWORD2
+isInSetup	KEYWORD2
+isMoving	KEYWORD2
+isServoSelected	KEYWORD2
+ledValueToAction	KEYWORD2
+ledValueToSpeed	KEYWORD2
+process	KEYWORD2
+processModeServo	KEYWORD2
+processTerServo	KEYWORD2
+processUpDownButtons	KEYWORD2
+readMinMax	KEYWORD2
+readMinMaxButton	KEYWORD2
+readSpeed	KEYWORD2
+saveMinMax	KEYWORD2
+savePosition	KEYWORD2
+saveSpeed	KEYWORD2
 
+# StatefulServoController class (extends ServoController)
+StatefulServoController	KEYWORD1
+buttonChanged	KEYWORD2
+lastLedValue	KEYWORD2
+resetSavePosition	KEYWORD2
+shouldAutomaticallyDisable	KEYWORD2
+shouldSavePosition	KEYWORD2
 
-#######################################
-# Methods and Functions (KEYWORD2)
-#######################################
-setTX	KEYWORD2
-begin	KEYWORD2
-write	KEYWORD2
+# Enums
+eAction	KEYWORD1
+eButton	KEYWORD1
+eButtonMode	KEYWORD1
+eState	KEYWORD1
 
-#######################################
-# Macros (KEYWORD2)
-#######################################
-
-#######################################
-# General macros (KEYWORD1)
-#######################################
-
-#######################################
-# Constants (LITERAL1)
-#######################################
+# Constants
+CNG_POS_FAST	LITERAL1
+CNG_POS_SLOW	LITERAL1
+CNG_SPD_FAST	LITERAL1
+CNG_SPD_SLOW	LITERAL1
+DEF_MAX_SERVO	LITERAL1
+DEF_MIN_SERVO	LITERAL1
+FLASHBLOCK_TYPE_MINMAX	LITERAL1
+FLASHBLOCK_TYPE_POSITION	LITERAL1
+FLASHBLOCK_TYPE_SPEED	LITERAL1
+MAX_MOVE	LITERAL1
+MAX_MOVE_BUTT	LITERAL1
+MAX_SERVO	LITERAL1
+MIN_MOVE	LITERAL1
+MIN_MOVE_BUTT	LITERAL1
+MIN_SERVO	LITERAL1
+NO_SERVO_SEL	LITERAL1
+OptMap	LITERAL1
+SERVO_MAX_VALUE	LITERAL1
