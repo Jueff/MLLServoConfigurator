@@ -1,60 +1,3 @@
-# ServoController class and methods
-ServoController	KEYWORD1
-disable	KEYWORD2
-getCurrent	KEYWORD2
-getLowerLimit	KEYWORD2
-getMaximum	KEYWORD2
-getMinimum	KEYWORD2
-getPin	KEYWORD2
-getSpeed	KEYWORD2
-getTarget	KEYWORD2
-getUpperLimit	KEYWORD2
-isInverted	KEYWORD2
-isMoving	KEYWORD2
-isReady	KEYWORD2
-onTimer	KEYWORD2
-repeating_timer_callback	KEYWORD2
-setCurrent	KEYWORD2
-setLowerLimit	KEYWORD2
-setSpeed	KEYWORD2
-setTarget	KEYWORD2
-setUpperLimit	KEYWORD2
-
-# ServoConfigurator class and methods
-ServoConfigurator	KEYWORD1
-changeModeServo	KEYWORD2
-controlServo	KEYWORD2
-getPercentage	KEYWORD2
-isInSetup	KEYWORD2
-isMoving	KEYWORD2
-isServoSelected	KEYWORD2
-ledValueToAction	KEYWORD2
-ledValueToSpeed	KEYWORD2
-process	KEYWORD2
-processModeServo	KEYWORD2
-processTerServo	KEYWORD2
-processUpDownButtons	KEYWORD2
-readMinMax	KEYWORD2
-readMinMaxButton	KEYWORD2
-readSpeed	KEYWORD2
-saveMinMax	KEYWORD2
-savePosition	KEYWORD2
-saveSpeed	KEYWORD2
-
-# StatefulServoController class (extends ServoController)
-StatefulServoController	KEYWORD1
-buttonChanged	KEYWORD2
-lastLedValue	KEYWORD2
-resetSavePosition	KEYWORD2
-shouldAutomaticallyDisable	KEYWORD2
-shouldSavePosition	KEYWORD2
-
-# Enums
-eAction	KEYWORD1
-eButton	KEYWORD1
-eButtonMode	KEYWORD1
-eState	KEYWORD1
-
 # Constants
 CNG_POS_FAST	LITERAL1
 CNG_POS_SLOW	LITERAL1
@@ -74,3 +17,57 @@ MIN_SERVO	LITERAL1
 NO_SERVO_SEL	LITERAL1
 OptMap	LITERAL1
 SERVO_MAX_VALUE	LITERAL1
+
+# Classes
+ServoController	KEYWORD1
+ServoConfigurator	KEYWORD1
+StatefulServoController	KEYWORD1
+
+# Enums
+eAction	KEYWORD1
+eButton	KEYWORD1
+eButtonMode	KEYWORD1
+eState	KEYWORD1
+
+# Methods
+buttonChanged	KEYWORD2
+changeModeServo	KEYWORD2
+controlServo	KEYWORD2
+disable	KEYWORD2
+getCurrent	KEYWORD2
+getLowerLimit	KEYWORD2
+getMaximum	KEYWORD2
+getMinimum	KEYWORD2
+getPercentage	KEYWORD2
+getPin	KEYWORD2
+getSpeed	KEYWORD2
+getTarget	KEYWORD2
+getUpperLimit	KEYWORD2
+isInSetup	KEYWORD2
+isInverted	KEYWORD2
+isMoving	KEYWORD2
+isReady	KEYWORD2
+isServoSelected	KEYWORD2
+lastLedValue	KEYWORD2
+ledValueToAction	KEYWORD2
+ledValueToSpeed	KEYWORD2
+onTimer	KEYWORD2
+process	KEYWORD2
+processModeServo	KEYWORD2
+processTerServo	KEYWORD2
+processUpDownButtons	KEYWORD2
+readMinMax	KEYWORD2
+readMinMaxButton	KEYWORD2
+readSpeed	KEYWORD2
+repeating_timer_callback	KEYWORD2
+resetSavePosition	KEYWORD2
+saveMinMax	KEYWORD2
+savePosition	KEYWORD2
+saveSpeed	KEYWORD2
+setCurrent	KEYWORD2
+setLowerLimit	KEYWORD2
+setSpeed	KEYWORD2
+setTarget	KEYWORD2
+setUpperLimit	KEYWORD2
+shouldAutomaticallyDisable	KEYWORD2
+shouldSavePosition	KEYWORD2
