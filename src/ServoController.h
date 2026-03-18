@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: 2025-2026 Juergen Winkler <MobaLedLib@gmx.at>
- * SPDX-License-Identifier: CC-BY-NC-4.0
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  *
 */
 
