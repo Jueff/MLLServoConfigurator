@@ -53,6 +53,7 @@ protected:
     int         current;
     int         target;
     bool        disabled;  // set to true if PWM should by turned off and pin set to high
+    byte        forceSet;  // set to value > 0 to notify onTimer to set the duty cycle even if the target value is reached, e.g. after a new target value is set with immediateMove=true
     uint8_t     pin;
     uint16_t    min;   // the absoulte minimum value for the servo 
     uint16_t    max;   // the absoulte maximum value for the servo

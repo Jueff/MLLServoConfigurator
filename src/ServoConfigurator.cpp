@@ -40,6 +40,9 @@ using eState = ServoConfigurator::eState;
 using eButtonMode = ServoConfigurator::eButtonMode;
 
 #define SERVO_MAX_VALUE 220
+#define SERVO_MIN_VALUE_TINY 10
+#define SERVO_MAX_VALUE_TINY 210
+
 #define NO_SERVO_SEL 0xff
 
 #define MIN_SERVO         ( 500*5)  // [us]/5   Die Servos haben ganz unterschiedliche PWM Bereiche
@@ -63,6 +66,9 @@ using eButtonMode = ServoConfigurator::eButtonMode;
 #define FLASHBLOCK_TYPE_SPEED    0xF1
 #define FLASHBLOCK_TYPE_POSITION 0xF2
 
+#define DISABLE_TIMEOUT           250
+#define SAVE_TIMEOUT             2500
+
 #define OptMap(x, in_min, in_max, out_min, out_max) (((long)((x) - (in_min)) * ((out_max) - (out_min))) / ((in_max) - (in_min)) + (out_min))
 
 ServoConfigurator::ServoConfigurator(FlashStorage* pFlashStorage, uint8_t storageOffset, uint8_t numberOfServos, uint8_t pins[])
@@ -84,18 +90,18 @@ ServoConfigurator::ServoConfigurator(FlashStorage* pFlashStorage, uint8_t storag
 
   for (int i = 0; i < numberOfServos; ++i)
   {
-    this->pServo[i] = new StatefulServoController(pins[i], MIN_SERVO, MAX_SERVO, CNG_POS_SLOW);
+    this->pServo[i] = new StatefulServoController(pins[i], MIN_SERVO, MAX_SERVO, CNG_POS_SLOW, SAVE_TIMEOUT, DISABLE_TIMEOUT);
 
     // read the min and max position for the servo from flash storage, if not valid use default values
     if (pFlashStorage->getBlock(fbs, FLASHBLOCK_TYPE_MINMAX, storageOffset + i))
     {
-      MLLSC_LOG(1, "%d-%d: limit storage for servo is valid\n", storageOffset, i);
+      MLLSC_LOG(1, "s%d: limit storage for servo is valid\n", storageOffset+i);
       lowerLimit = fbs.getWord(0);
       upperLimit = fbs.getWord(2);
     }
     else
     {
-      MLLSC_LOG(1, "%d-%d: using default limit values\n", storageOffset, i);
+      MLLSC_LOG(1, "s%d: using default limit values\n", storageOffset+i);
       lowerLimit = DEF_MIN_SERVO;
       upperLimit = DEF_MAX_SERVO;
       // todo error handling
@@ -105,11 +111,11 @@ ServoConfigurator::ServoConfigurator(FlashStorage* pFlashStorage, uint8_t storag
     if (pFlashStorage->getBlock(fbs, FLASHBLOCK_TYPE_SPEED, storageOffset + i))
     {
       speed = fbs.getWord(0);
-      MLLSC_LOG(1, "%d-%d: speed storage is valid\n", storageOffset, i);
+      MLLSC_LOG(1, "s%d: speed storage is valid\n", storageOffset+i);
     }
     else
     {
-      MLLSC_LOG(1, "%d-%d: using default speed values\n", storageOffset, i);
+      MLLSC_LOG(1, "s%d: using default speed values\n", storageOffset+i);
       speed = (CNG_POS_SLOW + CNG_POS_FAST) / 2;
       // todo error handling
     }
@@ -119,11 +125,11 @@ ServoConfigurator::ServoConfigurator(FlashStorage* pFlashStorage, uint8_t storag
     {
       pFlashStorage->dumpMemory(fbs.getAddress(), 8); 
       position = fbs.getWord(0);
-      MLLSC_LOG(1, "%d-%d: position storage for is valid\n", storageOffset, i, position);
+      MLLSC_LOG(1, "s%d: position storage for is valid\n", storageOffset+i, position);
     }
     else
     {
-      MLLSC_LOG(1, "%d-%d: using default position values\n", storageOffset, i);
+      MLLSC_LOG(1, "s%d: using default position values\n", storageOffset+i);
       position = (lowerLimit + upperLimit) / 2;
       // todo error handling
     }
@@ -131,9 +137,12 @@ ServoConfigurator::ServoConfigurator(FlashStorage* pFlashStorage, uint8_t storag
     pServo[i]->setLowerLimit(lowerLimit);
     pServo[i]->setUpperLimit(upperLimit);
     pServo[i]->setSpeed(speed);
-    pServo[i]->setCurrent(position);  // todo check how to correclty init without setting the PWM
-    //pServo[i]->setTarget(position, false);
-    MLLSC_LOG(1, "%d-%d: position %d lowerLimit %d upperLimit %d speed %d\n", storageOffset, i,
+    //pServo[i]->setCurrent(position);  // todo check how to correclty init without setting the PWM
+
+    // now try workaound for startup problem that servos sometimes move a litte bit
+    pServo[i]->setTarget(position, true, true);
+
+    MLLSC_LOG(1, "s%d: position %d lowerLimit %d upperLimit %d speed %d\n", storageOffset+i,
       pServo[i]->getTarget(), pServo[i]->getLowerLimit(), pServo[i]->getUpperLimit(), pServo[i]->getSpeed());
   }
 }
@@ -162,7 +171,7 @@ void ServoConfigurator::changeModeServo(uint8_t servoNumber, eAction action)
       if (newSel < numberOfServos)
       {
         selectedServo = newSel;
-        MLLSC_LOG(1, "%d-%d servo selected\r\n", storageOffset, selectedServo);
+        MLLSC_LOG(1, "%d servo selected\r\n", storageOffset+selectedServo);
       }
       break;
     }
@@ -174,7 +183,7 @@ void ServoConfigurator::changeModeServo(uint8_t servoNumber, eAction action)
         currentMinVal = pServo[selectedServo]->getMaximum();  // reset the values
         currentMaxVal = pServo[selectedServo]->getMinimum();  // reset the values
         pServo[selectedServo]->buttonChanged = 0;
-        //MLLSC_LOG(1, "%d-%d: eState::MinMax", storageOffset, i);
+        //MLLSC_LOG(1, "s%d: eState::MinMax", storageOffset+i);
         break;
       }
 
@@ -187,7 +196,7 @@ void ServoConfigurator::changeModeServo(uint8_t servoNumber, eAction action)
           currentMaxVal = pServo[selectedServo]->getTarget();
           saveMinMax(selectedServo);
           pServo[selectedServo]->setTarget(pServo[selectedServo]->getCurrent(), true);
-          MLLSC_LOG(1, "%d-%d: lowerLimit %d upperlimit %d\n", storageOffset, pServo[selectedServo]->getLowerLimit(), pServo[selectedServo]->getUpperLimit());
+          MLLSC_LOG(1, "s%d: lowerLimit %d upperlimit %d\n", storageOffset+selectedServo, pServo[selectedServo]->getLowerLimit(), pServo[selectedServo]->getUpperLimit());
           state = eState::Speed;
         }
       }
@@ -195,11 +204,11 @@ void ServoConfigurator::changeModeServo(uint8_t servoNumber, eAction action)
     }
 
     case eAction::SetByButton:  // (LED PWM 250)
-      MLLSC_LOG(1, "%d-%d: eAction::SetByButton state %d\n", storageOffset, state);
+      MLLSC_LOG(1, "s%d: eAction::SetByButton state %d\n", storageOffset+selectedServo, state);
       if (state == eState::MinMax && isServoSelected())
       {
         state = eState::MinMaxButtons;
-        MLLSC_LOG(1, "%d-%d: new state is MinMaxButtons\n", storageOffset, state);
+        MLLSC_LOG(1, "s%d: new state is MinMaxButtons\n", storageOffset+selectedServo, state);
         currentMinVal = pServo[selectedServo]->getLowerLimit();
         currentMaxVal = pServo[selectedServo]->getUpperLimit();
         buttonMode = eButtonMode::ReadMin;
@@ -211,7 +220,7 @@ void ServoConfigurator::changeModeServo(uint8_t servoNumber, eAction action)
       }
       else if (state == eState::Init)
       {
-        MLLSC_LOG(1, "%d-%d: TerServo\n", storageOffset, selectedServo);         // Debug: State eState::TerServo (LED PWM 250)
+        MLLSC_LOG(1, "s%d: TerServo\n", storageOffset+selectedServo);         // Debug: State eState::TerServo (LED PWM 250)
         state = eState::TerServo;
         selectedServo = servoNumber;   // Prevent that other channels disable the mode again because then the mode is toggled permanently
       }
@@ -232,7 +241,7 @@ void ServoConfigurator::changeModeServo(uint8_t servoNumber, eAction action)
       if (state != eState::Init)
       {
         state = eState::Init;
-        MLLSC_LOG(1, "%d-%d: change to eState::Init\n", storageOffset, state);
+        MLLSC_LOG(1, "s%d: change to eState::Init\n", storageOffset, state);
         selectedServo = NO_SERVO_SEL;
       }
       break;
@@ -245,11 +254,11 @@ void ServoConfigurator::processModeServo(uint8_t servoNumber, uint8_t ledValue)
   if (state == eState::Init || selectedServo == servoNumber)
   {
     eAction action = ledValueToAction(ledValue); // 0=0, 1-222=-1, 223-227=1, 228-232=2, 233-237=3, 238-242=4, 243-247=5, 248-252=6, 253-255=7
-    //if (((int8_t)action)>1) MLLSC_LOG(1, "%d-%d: ProcModeServer: state %d LED_pwm %d Action %d\r\n", storageOffset, servoNumber, state, ledValue, action);
+    //if (((int8_t)action)>1) MLLSC_LOG(1, "s%d: ProcModeServer: state %d LED_pwm %d Action %d\r\n", storageOffset+servoNumber, state, ledValue, action);
 
     if (action != eAction::Invalid && action != lastAction)
     {
-      if (isServoSelected()) MLLSC_LOG(1, "%d-%d: Action %d\n", storageOffset, servoNumber, action); // Debug
+      if (isServoSelected()) MLLSC_LOG(1, "s%d: Action %d\n", storageOffset+servoNumber, action); // Debug
       lastAction = action;
       changeModeServo(servoNumber, action);
     }
@@ -275,7 +284,7 @@ void ServoConfigurator::processModeServo(uint8_t servoNumber, uint8_t ledValue)
 void ServoConfigurator::controlServo(uint8_t ledValue, uint8_t servoNumber, bool limitRange)
 //----------------------------------------------------------------------
 {
-  //if (servoNumber==0) MLLSC_LOG(1, "%d-%d: Control_Servo value %d\n", storageOffset, servoNumber, ledValue);
+  //if (servoNumber==0) MLLSC_LOG(1, "s%d: Control_Servo value %d\n", storageOffset+servoNumber, ledValue);
   if (ledValue == 0)
   {
     pServo[servoNumber]->disable();
@@ -284,20 +293,24 @@ void ServoConfigurator::controlServo(uint8_t ledValue, uint8_t servoNumber, bool
   {
     if (ledValue <= SERVO_MAX_VALUE)
     {
+      // 22.03.2206: for ATTiny compatibility the range is limited to 10-210 
+      if (ledValue < SERVO_MIN_VALUE_TINY) ledValue = SERVO_MIN_VALUE_TINY; 
+      else if (ledValue > SERVO_MAX_VALUE_TINY) ledValue = SERVO_MAX_VALUE_TINY;
+
       uint16_t val;
       if (limitRange)
       {
         uint8_t tmpledValue = ledValue; // pServo[servoNumber]->isInverted() ? SERVO_MAX_VALUE - ledValue + 1 : ledValue;
-        val = map(tmpledValue, 1, SERVO_MAX_VALUE, pServo[servoNumber]->getLowerLimit(), pServo[servoNumber]->getUpperLimit());
+        val = map(tmpledValue, SERVO_MIN_VALUE_TINY, SERVO_MAX_VALUE_TINY, pServo[servoNumber]->getLowerLimit(), pServo[servoNumber]->getUpperLimit());
       }
       else
       {
-        val = map(ledValue, 1, SERVO_MAX_VALUE, pServo[servoNumber]->getMinimum(), pServo[servoNumber]->getMaximum());
+        val = map(ledValue, SERVO_MIN_VALUE_TINY, SERVO_MAX_VALUE_TINY, pServo[servoNumber]->getMinimum(), pServo[servoNumber]->getMaximum());
       }
       
       if (val != pServo[servoNumber]->getTarget())
       {
-        MLLSC_LOG(1, "%d-%d: controlServo value %d mapped to %d\n", storageOffset, servoNumber, ledValue, val);
+        MLLSC_LOG(1, "s%d: controlServo value %d mapped to %d\n", storageOffset+servoNumber, ledValue, val);
         pServo[servoNumber]->setTarget(val, limitRange);                     // 1 - 220
       }
     }
@@ -354,7 +367,7 @@ void ServoConfigurator::readMinMaxButton(uint8_t ledValue)
 
   if (pServo[selectedServo]->getTarget() != current)
   {
-    MLLSC_LOG(1, "%d-%d: value before %d, now %d\n", storageOffset, selectedServo, pServo[selectedServo]->getTarget(), current);
+    MLLSC_LOG(1, "s%d: value before %d, now %d\n", storageOffset+selectedServo, pServo[selectedServo]->getTarget(), current);
     pServo[selectedServo]->setTarget(current, false, true);  // todo move the servo with full speed
   }
 
@@ -369,7 +382,7 @@ void ServoConfigurator::readMinMaxButton(uint8_t ledValue)
 
   if (button == 2) // 205
   { // Button 1 pressed
-    MLLSC_LOG(1, "%d-%d: button pressed, buttonMode = %d\n", storageOffset, selectedServo, buttonMode);
+    MLLSC_LOG(1, "s%d: button pressed, buttonMode = %d\n", storageOffset+selectedServo, buttonMode);
       switch (buttonMode)
       {
       case eButtonMode::ReadMin:
@@ -395,7 +408,7 @@ void ServoConfigurator::readMinMaxButton(uint8_t ledValue)
     {
         currentMaxVal = current;
         saveMinMax(selectedServo);
-        MLLSC_LOG(1, "%d-%d: limit setting ends\n", storageOffset, selectedServo); // Debug
+        MLLSC_LOG(1, "s%d: limit setting ends\n", storageOffset+selectedServo); // Debug
     }
   }
 }
@@ -460,7 +473,7 @@ void ServoConfigurator::readSpeed(uint8_t ledValue)
       {
         lastChangeTime = t;
         pCurrent->setSpeed(speed);
-        MLLSC_LOG(1, "%d-%d: new speed %d\n", storageOffset, selectedServo, speed); // Debug
+        MLLSC_LOG(1, "s%d: new speed %d\n", storageOffset+selectedServo, speed); // Debug
       }
     }
   }
@@ -602,7 +615,7 @@ float ServoConfigurator::getPercentage() const
     // return the percent of speed between min and max
     float speedPercent = ((current - MIN_MOVE) * 100);
     speedPercent = speedPercent / (MAX_MOVE - MIN_MOVE);
-    //MLLSC_LOG(1, "%d-%d: getPercentage: current %d min %d max %d speedPercent %f\n", storageOffset, selectedServo, current, MIN_MOVE, MAX_MOVE, speedPercent);
+    //MLLSC_LOG(1, "s%d: getPercentage: current %d min %d max %d speedPercent %f\n", storageOffset+selectedServo, current, MIN_MOVE, MAX_MOVE, speedPercent);
     return speedPercent / 100;
   }
 
@@ -610,7 +623,7 @@ float ServoConfigurator::getPercentage() const
   // return the percent of current between min and max
   float posPercent = ((current - pServo[selectedServo]->getMinimum()) * 100);
   posPercent  = posPercent / (pServo[selectedServo]->getMaximum() - pServo[selectedServo]->getMinimum());
-  //MLLSC_LOG(1, "%d-%d: getPosition: current %d min %d max %d posPercent %f\n", storageOffset, selectedServo, current, pServo[selectedServo]->getMinimum(), pServo[selectedServo]->getMaximum(), posPercent);
+  //MLLSC_LOG(1, "s%d: getPosition: current %d min %d max %d posPercent %f\n", storageOffset+selectedServo, current, pServo[selectedServo]->getMinimum(), pServo[selectedServo]->getMaximum(), posPercent);
   return posPercent / 100;
 }
 
@@ -625,12 +638,12 @@ void ServoConfigurator::savePosition(uint8_t servoNumber)
   fwb.setWord(val, 0);
   if (!pFlashStorage->write(&fwb))
   {
-    MLLSC_LOG(1, "%d-%d: error saving position %d\n", storageOffset, servoNumber, val);
+    MLLSC_LOG(1, "s%d: error saving position %d\n", storageOffset+servoNumber, val);
     // todo error handling
   }
   else
   {
-    MLLSC_LOG(1, "%d-%d: position %d saved\n", storageOffset, servoNumber, val);
+    MLLSC_LOG(1, "s%d: position %d saved\n", storageOffset+servoNumber, val);
   }
 }
 
@@ -646,14 +659,14 @@ void ServoConfigurator::saveMinMax(uint8_t servoNumber)
   fwb.setWord(currentMaxVal, 2);
   if (!pFlashStorage->write(&fwb))
   {
-    MLLSC_LOG(1, "%d-%d: error saving limits min=%d max=%d\n",
-      storageOffset, servoNumber, pServo[servoNumber]->getLowerLimit(), pServo[servoNumber]->getUpperLimit());
+    MLLSC_LOG(1, "s%d: error saving limits min=%d max=%d\n",
+      storageOffset+servoNumber, pServo[servoNumber]->getLowerLimit(), pServo[servoNumber]->getUpperLimit());
     // todo error handling
   }
   else
   {
-    MLLSC_LOG(1, "%d-%d: limits min=%d max=%d saved\n",
-      storageOffset, servoNumber, pServo[servoNumber]->getLowerLimit(), pServo[servoNumber]->getUpperLimit());
+    MLLSC_LOG(1, "s%d: limits min=%d max=%d saved\n",
+      storageOffset+servoNumber, pServo[servoNumber]->getLowerLimit(), pServo[servoNumber]->getUpperLimit());
   }
 }
 
@@ -668,11 +681,11 @@ void ServoConfigurator::saveSpeed(uint8_t servoNumber)
   fwb.setWord(val, 0);
   if (!pFlashStorage->write(&fwb))
   {
-    MLLSC_LOG(1, "%d-%d: error saving speed %d\n", storageOffset, servoNumber, val);
+    MLLSC_LOG(1, "s%d: error saving speed %d\n", storageOffset+servoNumber, val);
     // todo error handling
   }
   else
   {
-    MLLSC_LOG(1, "%d-%d: speed %d saved\n", storageOffset, servoNumber, val);
+    MLLSC_LOG(1, "s%d: speed %d saved\n", storageOffset+servoNumber, val);
   }
 }

@@ -23,13 +23,16 @@ ServoController::ServoController(uint8_t pin, uint16_t min, uint16_t max, uint16
   // 20.000 µs = 20 ms = 0,02 Sekunden
   // 1 / 0,02 s = 50 Hz
 
-  pwm = new RP2040_PWM(pin, 50, 0);
+  digitalWrite(pin, HIGH);
+  pwm = new RP2040_PWM(pin, 50, INT_MAX);
+  digitalWrite(pin, HIGH);
   this->pin = pin;
   this->min = min;
   this->max = max;
   this->speed = speed;
   target = current = -1;
   lastValue = 0;
+  disabled = true;
   if (first == NULL)
   {
     first = this;
@@ -55,18 +58,21 @@ void ServoController::setCurrent(uint16_t value)
 bool ServoController::setTarget(uint16_t value, bool checkLimits, bool immediateMove)
 {
   if (value<1) return false;            // MLL sends 0 for pattern after restart - ignore that values(workaround until store_status for pattern works with MLL)
-  if (value == current)
+
+  if (!immediateMove)
   {
-    target = current;
-    return true;
+    if (value == current && !immediateMove)
+    {
+      target = current;
+      return true;
+    }
+    if (lastValue == value) return false;   // value didn't change
   }
   if (disabled)         // re-enable PWM
   {
     MLLSC_LOG(1, "P%d : enable servo\n", pin);
     disabled = false;
   }
-
-  if (lastValue==value) return false;   // value didn't change
   lastValue = value;
   
   if (checkLimits)
@@ -93,7 +99,7 @@ bool ServoController::setTarget(uint16_t value, bool checkLimits, bool immediate
   if (immediateMove)
   {
     current = target;
-    pwm->setPWM_Int(pin, 50, current);
+    forceSet = 10;
     MLLSC_LOG(1, "P%d : immediate move to %d\n", pin, target);
   }
   else
@@ -105,8 +111,15 @@ bool ServoController::setTarget(uint16_t value, bool checkLimits, bool immediate
   
 void ServoController::setDutyCycle()
 {
-  if (disabled) return;
-  if (current==target) return;
+  if (forceSet==0)
+  {
+    if (disabled) return;
+    if (current == target) return;
+  }
+  else
+  {
+    --forceSet;
+  }
   if (current==-1) // initial value
   {
     current=target;
@@ -125,13 +138,16 @@ void ServoController::setDutyCycle()
     }
     current += diff;
   }
-  pwm->setPWM_Int(pin, 50, current);
+  if (disabled) 
+    pwm->setPWM_Int(pin, 50, INT_MAX);
+  else
+    pwm->setPWM_Int(pin, 50, current);
   //MLLSC_LOG(1, "P%d : duty cycle target %d current %d\n", pin, target, current);
 }
 
 void ServoController::disable()
 {
-  if (!disabled)
+  if (!disabled && forceSet==0)   // don't disable the servo if we are currently moving
   {
     MLLSC_LOG(1, "P%d : disable servo\n", pin);
     pwm->setPWM_Int(pin, 50, INT_MAX);
@@ -171,7 +187,7 @@ void ServoController::setUpperLimit(uint16_t value)
 
 bool ServoController::isMoving() const
 {
-  return current != target;
+  return current != target || forceSet > 0;
 }
 
 bool ServoController::isInverted() const
