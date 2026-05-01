@@ -137,10 +137,7 @@ ServoConfigurator::ServoConfigurator(FlashStorage* pFlashStorage, uint8_t storag
     pServo[i]->setLowerLimit(lowerLimit);
     pServo[i]->setUpperLimit(upperLimit);
     pServo[i]->setSpeed(speed);
-    //pServo[i]->setCurrent(position);  // todo check how to correclty init without setting the PWM
-
-    // now try workaound for startup problem that servos sometimes move a litte bit
-    pServo[i]->setTarget(position, true, true);
+    pServo[i]->setCurrent(position);
 
     MLLSC_LOG(1, "s%d: position %d lowerLimit %d upperLimit %d speed %d\n", storageOffset+i,
       pServo[i]->getTarget(), pServo[i]->getLowerLimit(), pServo[i]->getUpperLimit(), pServo[i]->getSpeed());
@@ -310,7 +307,7 @@ void ServoConfigurator::controlServo(uint8_t ledValue, uint8_t servoNumber, bool
       
       if (val != pServo[servoNumber]->getTarget())
       {
-        MLLSC_LOG(1, "s%d: controlServo value %d mapped to %d\n", storageOffset+servoNumber, ledValue, val);
+        MLLSC_LOG(1, "s%d: controlServo value %d mapped to %d, previous %d\n", storageOffset + servoNumber, ledValue, val, pServo[servoNumber]->getTarget());
         pServo[servoNumber]->setTarget(val, limitRange);                     // 1 - 220
       }
     }

@@ -23,9 +23,9 @@ ServoController::ServoController(uint8_t pin, uint16_t min, uint16_t max, uint16
   // 20.000 µs = 20 ms = 0,02 Sekunden
   // 1 / 0,02 s = 50 Hz
 
-  digitalWrite(pin, HIGH);
-  pwm = new RP2040_PWM(pin, 50, INT_MAX);
-  digitalWrite(pin, HIGH);
+  digitalWrite(pin, LOW);
+  pwm = new RP2040_PWM(pin, 50, 0);
+  digitalWrite(pin, LOW);
   this->pin = pin;
   this->min = min;
   this->max = max;
@@ -33,6 +33,7 @@ ServoController::ServoController(uint8_t pin, uint16_t min, uint16_t max, uint16
   target = current = -1;
   lastValue = 0;
   disabled = true;
+  pwm->setPWM_Int(pin, 50, 0);
   if (first == NULL)
   {
     first = this;
@@ -139,7 +140,7 @@ void ServoController::setDutyCycle()
     current += diff;
   }
   if (disabled) 
-    pwm->setPWM_Int(pin, 50, INT_MAX);
+    pwm->setPWM_Int(pin, 50, 0);
   else
     pwm->setPWM_Int(pin, 50, current);
   //MLLSC_LOG(1, "P%d : duty cycle target %d current %d\n", pin, target, current);
@@ -150,7 +151,7 @@ void ServoController::disable()
   if (!disabled && forceSet==0)   // don't disable the servo if we are currently moving
   {
     MLLSC_LOG(1, "P%d : disable servo\n", pin);
-    pwm->setPWM_Int(pin, 50, INT_MAX);
+    pwm->setPWM_Int(pin, 50, 0);
     disabled = true;
   }
 }
