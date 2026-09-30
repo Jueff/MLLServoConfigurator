@@ -12,8 +12,9 @@ public:
     StatefulServoController(uint8_t pin, uint16_t min, uint16_t max, int speed, uint saveTimeout, uint disableTimeout)
         : ServoController(pin, min, max, speed)
     {
-        lastMoveTime = 0;
-        lastLedValue = 0;
+        lastMoveTime  = 0;
+        lastLedValue  = 0;
+        buttonChanged = 0;
         this->saveTimeout = saveTimeout;
         this->disableTimeout = disableTimeout;
     }

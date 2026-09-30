@@ -30,6 +30,9 @@ ServoController::ServoController(uint8_t pin, uint16_t min, uint16_t max, uint16
   this->min = min;
   this->max = max;
   this->speed = speed;
+  lowerLimit = min;
+  upperLimit = max;
+  forceSet = 0;
   target = current = -1;
   lastValue = 0;
   disabled = true;
@@ -152,6 +155,7 @@ void ServoController::disable()
   {
     MLLSC_LOG(1, "P%d : disable servo\n", pin);
     pwm->setPWM_Int(pin, 50, 0);
+    //digitalWrite(pin, HIGH);      // deaktivierter Zustand = HIGH
     disabled = true;
   }
 }
