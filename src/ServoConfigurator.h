@@ -42,8 +42,9 @@ public:
     TerServo = 6
   };
 
-  enum eButtonMode : uint8_t 
+  enum eButtonMode : uint8_t
   {
+    ModeNone = 0,
     ReadMin = 1,
     WaitEndMin = 2,
     ReadMax = 3,
@@ -66,6 +67,7 @@ private:
   void saveMinMax(uint8_t servoNumber);
   void saveSpeed(uint8_t servoNumber);
   void savePosition(uint8_t servoNumber);
+  void housekeepingTasks(uint8_t servoNumber);
 
   eAction ledValueToAction(uint8_t pwm);
   eButton processUpDownButtons(uint8_t LED_pwm, int& Val, int min, int max, uint16_t minStep, uint16_t maxStep);
@@ -76,7 +78,8 @@ private:
   inline int16_t ledValueToSpeed(uint8_t value);
   bool isServoSelected() const; // true if a valid servo is selected for configuration, false otherwise
 
-  StatefulServoController* pServo[3];
+  StatefulServoController** pServo;
+  short*                    ledValues;
   FlashStorage* pFlashStorage;
   uint8_t       storageOffset;
   uint8_t       numberOfServos;

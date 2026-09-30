@@ -78,6 +78,7 @@ ServoConfigurator::ServoConfigurator(FlashStorage* pFlashStorage, uint8_t storag
   selectedServo = NO_SERVO_SEL;
   lastAction = eAction::None;
   state = eState::Init;
+  buttonMode = eButtonMode::ModeNone;
   this->pFlashStorage = pFlashStorage;
   this->storageOffset = storageOffset;
   this->numberOfServos = numberOfServos;
@@ -88,8 +89,11 @@ ServoConfigurator::ServoConfigurator(FlashStorage* pFlashStorage, uint8_t storag
   uint16_t speed;
   uint16_t position;
 
+  this->pServo = new StatefulServoController*[numberOfServos];
+  this->ledValues = new short[numberOfServos];
   for (int i = 0; i < numberOfServos; ++i)
   {
+    this->ledValues[i] = -1;
     this->pServo[i] = new StatefulServoController(pins[i], MIN_SERVO, MAX_SERVO, CNG_POS_SLOW, SAVE_TIMEOUT, DISABLE_TIMEOUT);
 
     // read the min and max position for the servo from flash storage, if not valid use default values
@@ -246,12 +250,37 @@ void ServoConfigurator::changeModeServo(uint8_t servoNumber, eAction action)
   }
 }
 
+void ServoConfigurator::housekeepingTasks(uint8_t servoNumber)
+{
+  if (pServo[servoNumber]->shouldSavePosition())
+  {
+    savePosition(servoNumber);
+    pServo[servoNumber]->resetSavePosition();
+  }
+  if (pServo[servoNumber]->shouldAutomaticallyDisable())
+  {
+    pServo[servoNumber]->disable();
+  }
+} 
+
 void ServoConfigurator::processModeServo(uint8_t servoNumber, uint8_t ledValue)
 {
+  if (ledValues[servoNumber] == ledValue)
+  {
+    // LED Value didn't change
+    if (state == eState::Init || state == eState::ServoSel)
+    {
+      housekeepingTasks(servoNumber);
+    }
+    return; 
+  }
+  ledValues[servoNumber] = ledValue;
+
   if (state == eState::Init || selectedServo == servoNumber)
   {
     eAction action = ledValueToAction(ledValue); // 0=0, 1-222=-1, 223-227=1, 228-232=2, 233-237=3, 238-242=4, 243-247=5, 248-252=6, 253-255=7
     //if (((int8_t)action)>1) MLLSC_LOG(1, "s%d: ProcModeServer: state %d LED_pwm %d Action %d\r\n", storageOffset+servoNumber, state, ledValue, action);
+    MLLSC_LOG(1, "s%d: ProcModeServer: state %d LED_pwm %d Action %d\r\n", storageOffset + servoNumber, state, ledValue, action);
 
     if (action != eAction::Invalid && action != lastAction)
     {
@@ -263,7 +292,7 @@ void ServoConfigurator::processModeServo(uint8_t servoNumber, uint8_t ledValue)
     {
       switch (state)
       {
-      case eState::Init:          controlServo(ledValue, servoNumber, true);       break;// The selected servo is controlled
+      case eState::Init:          controlServo(ledValue, servoNumber, true);   break;// The selected servo is controlled
       case eState::ServoSel:      controlServo(ledValue, selectedServo, true); break;// The selected servo is controlled
       case eState::MinMax:
       case eState::MinMaxButtons: readMinMax(ledValue);                        break;
@@ -282,6 +311,7 @@ void ServoConfigurator::controlServo(uint8_t ledValue, uint8_t servoNumber, bool
 //----------------------------------------------------------------------
 {
   //if (servoNumber==0) MLLSC_LOG(1, "s%d: Control_Servo value %d\n", storageOffset+servoNumber, ledValue);
+  MLLSC_LOG(1, "s%d: Control_Servo value %d\n", storageOffset+servoNumber, ledValue);
   if (ledValue == 0)
   {
     pServo[servoNumber]->disable();
@@ -304,7 +334,8 @@ void ServoConfigurator::controlServo(uint8_t ledValue, uint8_t servoNumber, bool
       {
         val = map(ledValue, SERVO_MIN_VALUE_TINY, SERVO_MAX_VALUE_TINY, pServo[servoNumber]->getMinimum(), pServo[servoNumber]->getMaximum());
       }
-      
+
+      MLLSC_LOG(1, "s%d: controlServo new value %d previous %d\n", storageOffset + servoNumber, val, pServo[servoNumber]->getTarget());
       if (val != pServo[servoNumber]->getTarget())
       {
         MLLSC_LOG(1, "s%d: controlServo value %d mapped to %d, previous %d\n", storageOffset + servoNumber, ledValue, val, pServo[servoNumber]->getTarget());
@@ -313,17 +344,9 @@ void ServoConfigurator::controlServo(uint8_t ledValue, uint8_t servoNumber, bool
     }
   }
 
-  // Save the Servo position
-  if (pServo[servoNumber]->shouldSavePosition())
-  {
-    savePosition(servoNumber);
-    pServo[servoNumber]->resetSavePosition();
-  }
-  if (pServo[servoNumber]->shouldAutomaticallyDisable())
-  {
-    pServo[servoNumber]->disable();
-  }
+  housekeepingTasks(servoNumber);
 }
+
 
 //-------------------------------------------------------------------------------------------------------------------
 eButton ServoConfigurator::processUpDownButtons(uint8_t LED_pwm, int& val, int min, int max, uint16_t minStep, uint16_t maxStep)
