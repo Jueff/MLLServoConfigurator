@@ -30,4 +30,25 @@ Die ServoController-Klasse verwaltet einen einzelnen Servo-Motor über PWM auf ei
 ### Kontakt / Referenz
 - Projekt-Repo: `https://github.com/Jueff/MLLServoConfigurator`
 
+## Release Notes
+
+### Version 1.2.0
+
+#### English
+- `ServoConfigurator` now supports runtime-sized servo channel arrays based on `numberOfServos` (instead of fixed compile-time arrays).
+- Clarified command/value interpretation for setup mode:
+  - `0` => `None` (returns configurator to `Init`)
+  - `223..255` => setup actions (`Servo0..Ok`)
+  - `1..222` => normal control range
+- Internal state-machine behavior in selection/setup flow was cleaned up for more predictable servo selection handling.
+
+#### Deutsch
+- Paket-Metadaten auf `1.2.0` aktualisiert (`library.properties` und `library.json`).
+- `ServoConfigurator` unterstützt jetzt zur Laufzeit dimensionierte Servo-Kanal-Arrays basierend auf `numberOfServos` (statt fest verdrahteter Compile-Time-Arrays).
+- Auswertung von Befehls-/Wertebereichen für den Setup-Modus präzisiert:
+  - `0` => `None` (setzt den Configurator auf `Init` zurück)
+  - `223..255` => Setup-Aktionen (`Servo0..Ok`)
+  - `1..222` => normaler Steuerbereich
+- Internes Verhalten der Zustandsmaschine im Selektions-/Setup-Ablauf bereinigt, um die Servo-Selektion vorhersagbarer zu machen.
+
 
